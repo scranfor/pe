@@ -1,6 +1,13 @@
 # pe
 Pipe Encryptor - A simple tool to encrypt and optionally compress a stream.
 
+## Requirements
+
+* Bash
+* OpenSSL
+* cat
+* lz4 (optional)
+
 ## Generating RSA keys
 Generate an RSA keypair like so:
 
