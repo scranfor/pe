@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# pe - Pipe Encryptor - A simple tool to encrypt and optionally compress a stream.
+# It works with RSA keys, which can be generated with:
+# openssl genrsa -out private.pem 4096
+# openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+
+mode='e'
+compress='off'
+
+# Todo:
+# This will be so we can switch between operating on stdin/stdout and files
+#exec 3<> file.out
+#exec >&3
+
+function encrypt {
+	aeskey=$(openssl rand -base64 32)
+	aeskey_rsa=$(openssl rsautl -encrypt -inkey $rsakey -pubin <<< $aeskey | base64)
+	cat <<< "${aeskey_rsa}:"
+	if [[ $compress == 'lz4' ]] ; then
+		echo 'options-compress=lz4'
+		echo 'options-end'
+		lz4 | openssl enc -aes-256-cbc -pass pass:$aeskey
+	else
+		echo 'options-compress=off'
+		echo 'options-end'
+		openssl enc -aes-256-cbc -pass pass:$aeskey
+	fi
+}
+
+function decrypt {
+	while read line; do
+		if [[ $line == *: ]] ; then
+			aeskey_rsa+=${line//:}
+			break
+		else
+			aeskey_rsa+=$line$'\n'
+		fi
+	done
+	while read line; do
+		if [[ $line == 'options-end' ]] ; then
+			break
+		elif [[ $line == options-compress=* ]] ; then
+			compress=$(awk -F"=" '{print $2}' <<< $line)
+		fi
+	done
+	aeskey=$(base64 -d <<< "$aeskey_rsa" | openssl rsautl -decrypt -inkey $rsakey)
+	[[ $compress == 'lz4' ]] && openssl enc -d -aes-256-cbc -pass pass:$aeskey | lz4 -dc
+	[[ $compress == 'off' ]] && openssl enc -d -aes-256-cbc -pass pass:$aeskey
+}
+
+while getopts "cdk:" option; do
+	case $option in
+		c)
+			compress='lz4'
+			;;
+		d)
+			mode='d'
+			;;
+		k)
+			if ! [ -f $OPTARG ] ; then
+				echo "Specificed keyfile does not exist: $OPTARG" >&2
+				exit 1
+			fi
+			rsakey=$OPTARG
+			;;
+		/?)
+			echo "Invalid option: -$OPTARG" >&2
+			exit 1
+			;;
+	esac
+done
+
+[[ $mode == 'e' ]] && encrypt || decrypt
