@@ -21,7 +21,7 @@ Then extract the public key like so:
 
 Simply pipe data in, specifying the public key:
 
-`cat myfile.tar.gz` | pe -k /path/to/public.key > myfile.tar.gz.enc
+`cat myfile.tar.gz | pe -k /path/to/public.key > myfile.tar.gz.enc`
 
 ## Decrypting
 
