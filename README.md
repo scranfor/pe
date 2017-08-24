@@ -15,7 +15,7 @@ Generate an RSA keypair like so:
 
 Then extract the public key like so:
 
-`openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+`openssl rsa -in private.pem -outform PEM -pubout -out public.pem`
 
 ## Encrypting
 
